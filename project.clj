@@ -3,6 +3,7 @@
   :url "https://github.com/fommil/twitter-teflon"
   :license {:name "GNU Lesser General Public License"
             :url "https://www.gnu.org/copyleft/lesser.html"}
+  :plugins [[lein-cljfmt "0.4.1"]]
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.374"]
                  [clj-oauth "1.5.5"]
