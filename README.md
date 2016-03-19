@@ -11,6 +11,7 @@ You must create `config.clj` containing
 (def ^:const +twitter_consumer_secret+ "...")
 (def ^:const +twitter_access_token+ "...")
 (def ^:const +twitter_access_token_secret+ "...")
+(def ^:const +twitter_username+ "...")
 ```
 
 as per your App available at [apps.twitter.com](https://apps.twitter.com).

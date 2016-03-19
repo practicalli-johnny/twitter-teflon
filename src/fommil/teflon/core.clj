@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string]
    [oauth.client :as oauth]
-   [clj-http.client :as http]))
+   [clj-http.client :as http]
+   [cheshire.core :as json]))
 
 (load-file "config.clj")
 
@@ -25,13 +26,21 @@
                      method
                      url
                      query-params)]
-    (http/request
-     {:method method
-      :url url
-      :query-params (merge credentials query-params)})))
+    (:body (http/request
+            {:method method
+             :url url
+             :query-params (merge credentials query-params)}))))
+
+(defn tweets
+  "Get tweets for the given user before the given id.
+  A tweet contains: `id', `text', `retweet_count', `favorite_count'."
+  ([user] (tweets user nil))
+  ([user maxid]
+   (json/parse-string
+    (twitter-request
+     :get "1.1/statuses/user_timeline.json"
+     {:screen_name user}))))
 
 (defn -main []
-  (println (twitter-request
-            :get "1.1/statuses/user_timeline.json"
-            {:screen_name "fommil"})))
+  (println (first (tweets +twitter_username+))))
 
