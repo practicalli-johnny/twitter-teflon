@@ -1,6 +1,6 @@
-(ns twitter-teflon.core-test
+(ns fommil.teflon.core-test
   (:require [clojure.test :refer :all]
-            [twitter-teflon.core :refer :all]))
+            [fommil.teflon.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
