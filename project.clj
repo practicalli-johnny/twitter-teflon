@@ -6,5 +6,6 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.374"]
                  [clj-oauth "1.5.5"]
+                 [oauth-clj "0.1.14"]
                  [cheshire "5.5.0"]]
   :main fommil.teflon.core)
