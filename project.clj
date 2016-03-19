@@ -5,6 +5,6 @@
             :url "https://www.gnu.org/copyleft/lesser.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.374"]
-                 [http-kit "2.1.18"]
+                 [clj-oauth "1.5.5"]
                  [cheshire "5.5.0"]]
   :main fommil.teflon.core)
