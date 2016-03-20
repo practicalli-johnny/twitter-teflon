@@ -6,6 +6,9 @@
   :plugins [[lein-cljfmt "0.4.1"]]
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.374"]
-                 [clj-oauth "1.5.5"]
+                 [http-kit "2.1.19"]
+                 [commons-codec/commons-codec "1.8"]
+                 [org.bouncycastle/bcprov-jdk15on "1.54"]
+                 [org.bouncycastle/bcpkix-jdk15on "1.54"]
                  [cheshire "5.5.0"]]
-  :main fommil.teflon.core)
+  :main fommil.teflon)
