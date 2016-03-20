@@ -3,6 +3,8 @@
    [clojure.string :as string]
    [fommil.oauth :as oauth]
    [org.httpkit.client :as http]
+   [clojure.core.async :as async :refer :all
+    :exclude [map into reduce merge partition partition-by take]]
    [cheshire.core :as json])
   (:import
    [fommil.oauth Consumer]))
@@ -11,9 +13,10 @@
 
 (defn twitter-request
   "Wraps `http/request' with OAuth1.0 authentication assuming that the
-  consumer and access tokens are defined."
+  consumer and access tokens are defined. Returns a channel."
   [method endpoint query-params]
-  (let [url (string/join "" ["https://api.twitter.com/" endpoint])
+  (let [ch (chan)
+        url (string/join "" ["https://api.twitter.com/" endpoint])
         consumer (oauth/Consumer.
                   +twitter_consumer_key+
                   +twitter_consumer_secret+
@@ -27,24 +30,31 @@
                      +twitter_access_token_secret+
                      method
                      url
-                     query-params)]
-    (:body
-     ;; transitional approach, will go async soon
-     @(http/request
-       {:method method
-        :url url
-        :query-params (merge credentials query-params)}))))
+                     query-params)
+        payload (merge credentials query-params)]
+    (http/request
+     {:method method
+      :url url
+      :query-params payload}
+     (fn [response]
+       (if (= 200 (:status response))
+         (put! ch response)
+         (do (close! ch)
+             (throw (Exception. response))))))))
 
 (defn tweets
-  "Get tweets for the given user before the given id.
-  A tweet contains: `id', `text', `retweet_count', `favorite_count'."
+  "Get a channel with tweets for the given user before the given id."
   [user max_id]
-  (as-> max_id <>
-        (if max_id {:max_id max_id} {})
-        (merge {:screen_name user} <>)
-        (twitter-request
-         :get "1.1/statuses/user_timeline.json" <>)
-        (json/parse-string <> true)))
+  (let [in (->
+            (if max_id {:max_id max_id} {})
+            (merge {:screen_name user})
+            (twitter-request
+             :get "1.1/statuses/user_timeline.json"))
+        out (chan)]
+    (go
+      (if-let [resp (<! in)]
+        (>! out (json/parse-string (:body resp) true))
+        (close! out)))))
 
 (defn all-tweets
   ;; would be better to use backpressure with work,
@@ -67,7 +77,7 @@
          likes :favorite_count} tweet]
     (and (< retweets 5) (< likes 5))))
 
+(def ex (<!! (tweets +twitter_username+ nil)))
 (defn -main []
-  (def ex (tweets +twitter_username+ nil))
   (println (map :text (filter delete-tweet? ex))))
 
