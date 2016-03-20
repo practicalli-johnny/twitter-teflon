@@ -19,11 +19,14 @@
   The key-value pairs returned as a map will need to be added to the
   Authorization HTTP header or added as query parameters to the
   request."
-  ([consumer token token-secret request-method request-uri & [request-params]]
+  ([consumer token token-secret request-method request-uri request-params]
+   (let [time (sig/msecs->secs (System/currentTimeMillis))]
+     (credentials consumer token token-secret request-method request-uri time request-params)))
+  ([consumer token token-secret request-method request-uri time request-params]
    (let [unsigned-oauth-params (sig/oauth-params
                                 consumer
                                 (sig/rand-str 30)
-                                (sig/msecs->secs (System/currentTimeMillis))
+                                time
                                 token)
          unsigned-params       (merge request-params unsigned-oauth-params)
          signature             (sig/sign
