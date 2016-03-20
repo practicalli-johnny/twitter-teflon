@@ -26,21 +26,54 @@
                      method
                      url
                      query-params)]
-    (:body (http/request
-            {:method method
-             :url url
-             :query-params (merge credentials query-params)}))))
+    (:body
+     (http/request
+      {:method method
+       :url url
+       :query-params (merge credentials query-params)}))))
 
 (defn tweets
   "Get tweets for the given user before the given id.
   A tweet contains: `id', `text', `retweet_count', `favorite_count'."
-  ([user] (tweets user nil))
-  ([user maxid]
-   (json/parse-string
+  [user max_id]
+  (as-> max_id <>
+    (if max_id {:max_id max_id} {})
+    (merge {:screen_name user} <>)
     (twitter-request
-     :get "1.1/statuses/user_timeline.json"
-     {:screen_name user}))))
+     :get "1.1/statuses/user_timeline.json" <>)
+    (json/parse-string <> true)))
+
+(defn all-tweets
+  ;; would be better to use backpressure with work,
+  ;; this is super slow and blocking, and
+  ;; exceeds the rate limits.
+  "Get all tweets for the user, ending at max_id."
+  ([user] (all-tweets user nil nil))
+  ([user max_id acc]
+   (let [batch (tweets user max_id)]
+     (if (empty? batch)
+       acc
+       (let [rev (reverse batch)
+             oldest (:id (first rev))]
+         (recur user (dec oldest) (concat rev acc)))))))
+
+(defn delete-tweet?
+  "True if this tweet is not good enough to keep."
+  [tweet]
+  (let [{retweets :retweet_count
+        likes :favorite_count} tweet]
+    (and (< retweets 5) (< likes 5))))
 
 (defn -main []
-  (println (first (tweets +twitter_username+))))
+  (def ex (all-tweets +twitter_username+))
+  (def tweet (first ex))
+
+  (count ex)
+
+  (first (tweets +twitter_username+ 711178097752678300))
+  (map :text (filter deleteTweet? ex))
+
+  (map :text ex)
+
+  (println (map :id (tweets +twitter_username+))))
 
