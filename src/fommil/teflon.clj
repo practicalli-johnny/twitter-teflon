@@ -11,6 +11,25 @@
 
 (load-file "config.clj")
 
+(defn heartbeat
+  ;; by Paul Butcher
+  "Return a channel that pings every interval ms"
+  [interval]
+  (let [ch (chan)]
+    (go (while (>! ch :ping)
+          (<! (timeout interval))))
+    ch))
+
+(defn rate-limited
+  ;; by Paul Butcher
+  "Return a channel that's rate-limited to an average of one item per interval"
+  [in interval]
+  (let [out (chan)
+        hb (heartbeat interval)]
+    (go (while (>! out (<! in))
+          (<! hb)))
+    out))
+
 (defn twitter-request
   "Wraps `http/request' with OAuth1.0 authentication assuming that the
   consumer and access tokens are defined. Returns a channel."
@@ -47,7 +66,8 @@
   [user max_id]
   (let [in (->>
             (if max_id {:max_id (dec max_id)} {})
-            (merge {:screen_name user})
+            ;; 200 is maximum
+            (merge {:screen_name user :count 200})
             (twitter-request
              :get "1.1/statuses/user_timeline.json"))
         out (chan)]
@@ -80,7 +100,9 @@
 
 (defn -main []
   (println "hello")
-  (def tweets (get-tweets-all +twitter_username+))
+  ;; https://dev.twitter.com/rest/public/rate-limits
+  ;; statuses/user_timeline limited to 300 per 15 minutes
+  (def tweets (rate-limited (get-tweets-all +twitter_username+) 3000))
 
   (loop []
     (when-let [batch (<!! tweets)]
