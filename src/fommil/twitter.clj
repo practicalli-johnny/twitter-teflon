@@ -63,7 +63,9 @@
       (if-let [resp (<! in)]
         (let [json (:body resp)
               parsed (json/parse-string json true)]
-          (>! out parsed))
+          (if (empty? parsed)
+            (async/close! out)
+            (>! out parsed)))
         (async/close! out)))
     out))
 

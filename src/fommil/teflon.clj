@@ -28,9 +28,10 @@
                   3000
                   (user_timeline_all +twitter_username+))]
       (loop []
-        (println "looping")
         (when-let [batch (<!! tweets)]
-          (println "GOT" (count batch) "tweets" (map :id batch))
+          (println "GOT" (count batch) "tweets ["
+                   (first (map :id batch)) "," (last (map :id batch))
+                   "]")
           (recur)))))
 
   (println "goodbye"))
