@@ -33,42 +33,49 @@
                      query-params)
         payload (merge credentials query-params)]
     (http/request
-     {:method method
-      :url url
-      :query-params payload}
+     {:method method :url url :query-params payload}
      (fn [response]
        (if (= 200 (:status response))
          (put! ch response)
          (do (close! ch)
-             (throw (Exception. response))))))))
+             (throw (Exception. response))))))
+    ch))
 
-(defn tweets
+(defn get-tweets-batch
   "Get a channel with tweets for the given user before the given id."
   [user max_id]
-  (let [in (->
+  (let [in (->>
             (if max_id {:max_id max_id} {})
             (merge {:screen_name user})
             (twitter-request
              :get "1.1/statuses/user_timeline.json"))
         out (chan)]
     (go
-      (if-let [resp (<! in)]
-        (>! out (json/parse-string (:body resp) true))
-        (close! out)))))
+      (when-let [resp (<! in)]
+        (let [json (:body resp)
+              parsed (json/parse-string json true)]
+          (loop [remaining parsed]
+            (when (seq remaining)
+              ;; there has got to be a convenience for putting a sequence onto a channel
+              ;; or should we just return the whole batch?
+              (>! out (first remaining))
+              (recur (rest remaining)))))
+        (close! out)))
+    out))
 
-(defn all-tweets
-  ;; would be better to use backpressure with work,
-  ;; this is super slow and blocking, and
-  ;; exceeds the rate limits.
-  "Get all tweets for the user, ending at max_id."
-  ([user] (all-tweets user nil nil))
-  ([user max_id acc]
-   (let [batch (tweets user max_id)]
-     (if (empty? batch)
-       acc
-       (let [rev (reverse batch)
-             oldest (:id (first rev))]
-         (recur user (dec oldest) (concat rev acc)))))))
+;; (defn all-tweets
+;;   ;; would be better to use backpressure with work,
+;;   ;; this is super slow and blocking, and
+;;   ;; exceeds the rate limits.
+;;   "Get all tweets for the user, ending at max_id."
+;;   ([user] (all-tweets user nil nil))
+;;   ([user max_id acc]
+;;    (let [batch (get-tweets user max_id)]
+;;      (if (empty? batch)
+;;        acc
+;;        (let [rev (reverse batch)
+;;              oldest (:id (first rev))]
+;;          (recur user (dec oldest) (concat rev acc)))))))
 
 (defn delete-tweet?
   "True if this tweet is not good enough to keep."
@@ -77,7 +84,16 @@
          likes :favorite_count} tweet]
     (and (< retweets 5) (< likes 5))))
 
-(def ex (<!! (tweets +twitter_username+ nil)))
 (defn -main []
-  (println (map :text (filter delete-tweet? ex))))
+  (println "hello")
+  (def tweets (get-tweets-batch +twitter_username+ nil))
+
+  (loop []
+    (when-let [tweet (<!! tweets)]
+      (println (:text tweet))
+      (recur)))
+
+  (println "goodbye")
+  ;;(println (map :text (filter delete-tweet? ex)))
+  )
 
