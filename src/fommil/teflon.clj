@@ -42,40 +42,34 @@
     ch))
 
 (defn get-tweets-batch
-  "Get a channel with tweets for the given user before the given id."
+  "Return a channel containing a batch of tweets (id strictly less than
+  the max_id) for the given user."
   [user max_id]
   (let [in (->>
-            (if max_id {:max_id max_id} {})
+            (if max_id {:max_id (dec max_id)} {})
             (merge {:screen_name user})
             (twitter-request
              :get "1.1/statuses/user_timeline.json"))
         out (chan)]
     (go
-      (when-let [resp (<! in)]
+      (if-let [resp (<! in)]
         (let [json (:body resp)
               parsed (json/parse-string json true)]
-          (loop [remaining parsed]
-            (when (seq remaining)
-              ;; there has got to be a convenience for putting a sequence onto a channel
-              ;; or should we just return the whole batch?
-              (>! out (first remaining))
-              (recur (rest remaining)))))
+          (>! out parsed))
         (close! out)))
     out))
 
-;; (defn all-tweets
-;;   ;; would be better to use backpressure with work,
-;;   ;; this is super slow and blocking, and
-;;   ;; exceeds the rate limits.
-;;   "Get all tweets for the user, ending at max_id."
-;;   ([user] (all-tweets user nil nil))
-;;   ([user max_id acc]
-;;    (let [batch (get-tweets user max_id)]
-;;      (if (empty? batch)
-;;        acc
-;;        (let [rev (reverse batch)
-;;              oldest (:id (first rev))]
-;;          (recur user (dec oldest) (concat rev acc)))))))
+(defn get-tweets-all
+  "Return a channel containing tweets for the `user', newest first."
+  [user]
+  (let [out (chan)]
+    (go-loop [previous nil]
+      (if-let [tweets (<! (get-tweets-batch user previous))]
+        (do
+          (>! out tweets)
+          (recur (:id (last tweets))))
+        (close! out)))
+    out))
 
 (defn delete-tweet?
   "True if this tweet is not good enough to keep."
@@ -86,11 +80,11 @@
 
 (defn -main []
   (println "hello")
-  (def tweets (get-tweets-batch +twitter_username+ nil))
+  (def tweets (get-tweets-all +twitter_username+))
 
   (loop []
-    (when-let [tweet (<!! tweets)]
-      (println (:text tweet))
+    (when-let [batch (<!! tweets)]
+      (println "GOT" (count batch) "tweets" (map :id batch))
       (recur)))
 
   (println "goodbye")
