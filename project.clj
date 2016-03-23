@@ -10,5 +10,6 @@
                  [commons-codec/commons-codec "1.8"]
                  [org.bouncycastle/bcprov-jdk15on "1.54"]
                  [org.bouncycastle/bcpkix-jdk15on "1.54"]
+                 [midje "1.8.3"]
                  [cheshire "5.5.0"]]
   :main fommil.teflon.core)

@@ -7,15 +7,19 @@
    [clojure.core.async :as async :only [<! >! go go-loop]]))
 
 (defn heartbeat
-  "Return a channel that pings every interval millis."
-  [interval]
-  (let [out (async/chan)]
-    (go-loop []
-      (<! (async/timeout interval))
-      ;; has an initial delay
-      (when (>! out :ping)
-        (recur)))
-    out))
+  "Return a channel that pings every `interval' millis after an initial `delay'."
+  ([interval] (heartbeat interval 0))
+  ([interval delay]
+   (let [out (async/chan)]
+     (go
+       (<! (async/timeout delay))
+       (>! out :ping)
+       (loop []
+         (<! (async/timeout interval))
+         ;; has an initial delay
+         (when (>! out :ping)
+           (recur))))
+     out)))
 
 (defn rate-limited
   "Rate limit `in' to a maximum of one message every `internal' millis."
