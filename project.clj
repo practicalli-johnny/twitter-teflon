@@ -11,4 +11,4 @@
                  [org.bouncycastle/bcprov-jdk15on "1.54"]
                  [org.bouncycastle/bcpkix-jdk15on "1.54"]
                  [cheshire "5.5.0"]]
-  :main fommil.teflon)
+  :main fommil.teflon.core)

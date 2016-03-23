@@ -4,14 +4,14 @@ Delete all your low-score tweets, retweets, and likes.
 
 Before using this app, you are advised to [back up your twitter archive](https://twitter.com/settings/account).
 
-You must create `config.clj` containing
+You must create `config.edn` containing
 
 ```clojure
-(def ^:const +twitter_consumer_key+ "...")
-(def ^:const +twitter_consumer_secret+ "...")
-(def ^:const +twitter_access_token+ "...")
-(def ^:const +twitter_access_token_secret+ "...")
-(def ^:const +twitter_username+ "...")
+{:twitter_consumer_key        "..."
+ :twitter_consumer_secret     "..."
+ :twitter_access_token        "..."
+ :twitter_access_token_secret "..."
+ :twitter_username            "..."}
 ```
 
 as per your App available at [apps.twitter.com](https://apps.twitter.com).
