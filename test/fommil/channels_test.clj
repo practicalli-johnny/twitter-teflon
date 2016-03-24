@@ -1,9 +1,11 @@
 ;; Copyright (C) 2016 Sam Halliday
 ;; Licence: http://www.gnu.org/licenses/lgpl.html
 
+;; potentially flakey tests because they rely on timing and if a GC
+;; happens, or we get a slow machine, things might fail.
 (ns fommil.channels-test
   (:use
-   [clojure.core.async :as async :only [<!!]])
+   [clojure.core.async :as async :only [<!! >! go-loop]])
   (:require
    [midje.sweet :refer :all]
    [fommil.channels :refer :all]))
@@ -31,4 +33,20 @@
       (timed (<!! (async/partition 5 (heartbeat 50))))
       => (just {:result [:ping :ping :ping :ping :ping]
                 :time #(<= 190 % 210)})
+      )
+
+(fact "channels can be rate limited"
+      ;; FIXME there is a bug in here somewhere...
+      (let [counter (atom 0)
+            in      (async/chan)
+            limited (rate-limited 10 in)
+            start   (System/currentTimeMillis)]
+        (go-loop []
+          (dosync (alter counter inc))
+          (>! in :foo)
+          (recur))
+        (while (< (- (System/currentTimeMillis) start) 100)
+          (<!! limited))
+        (@counter))
+      => (just #(<= 5 % 15))
       )

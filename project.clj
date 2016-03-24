@@ -12,4 +12,7 @@
                  [org.bouncycastle/bcpkix-jdk15on "1.54"]
                  [midje "1.8.3"]
                  [cheshire "5.5.0"]]
+  ;; https://github.com/franks42/clj-ns-browser
+  ;; (use 'clj-ns-browser.sdoc) (sdoc)
+  :profiles {:dev {:dependencies [[clj-ns-browser "1.3.1"]]}}
   :main fommil.teflon.core)
